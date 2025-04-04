@@ -22,7 +22,7 @@ tracing-futures = "0.2.5"
 [dev-dependencies]
 axum_07 = { package = "axum", version = "^0.7", features = ["tokio"]}
 axum_08 = { package = "axum", version = "^0.8", features = ["tokio"]}
-rand = "0.8.5"
+rand = "0.9"
 tokio = { version = "1.42.0", features = ["full"] }
 tower = { version = "0.5.1", features = ["util"] }
 
