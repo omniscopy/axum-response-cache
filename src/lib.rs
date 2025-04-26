@@ -576,8 +576,8 @@ mod tests {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 StatusCode::NOT_FOUND,
             ];
-            let mut rng = rand::thread_rng();
-            responses[rng.gen_range(0..responses.len())]
+            let mut rng = rand::rng();
+            responses[rng.random_range(0..responses.len())]
         };
 
         let counter = Counter::new(0);
@@ -611,13 +611,13 @@ mod tests {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 StatusCode::NOT_FOUND,
             ];
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
 
             // first response successful, later failed
             if prev == 0 {
                 StatusCode::OK
             } else {
-                responses[rng.gen_range(0..responses.len())]
+                responses[rng.random_range(0..responses.len())]
             }
         };
 
@@ -660,13 +660,13 @@ mod tests {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 StatusCode::NOT_FOUND,
             ];
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
 
             // first response successful, later failed
             if prev == 0 {
                 StatusCode::OK
             } else {
-                responses[rng.gen_range(0..responses.len())]
+                responses[rng.random_range(0..responses.len())]
             }
         };
 
