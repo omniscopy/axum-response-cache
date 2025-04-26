@@ -251,7 +251,13 @@
 //! This will disable the default Axum 0.8 feature and enable the Axum 0.7 feature instead.
 
 use std::{
-    convert::Infallible, fmt::Debug, future::Future, hash::Hash, pin::Pin, sync::{Arc, Mutex}, task::{Context, Poll}
+    convert::Infallible,
+    fmt::Debug,
+    future::Future,
+    hash::Hash,
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::{Context, Poll},
 };
 use tracing_futures::Instrument as _;
 
@@ -279,7 +285,7 @@ pub type Keyer<K> = Arc<dyn Fn(&Request<Body>) -> K + Send + Sync + 'static>;
 /// ([`axum::http::Uri`]) of the request they responded to.
 type BasicKey = (http::Method, http::Uri);
 fn basic_keyer() -> Keyer<BasicKey> {
-    Arc::new(|request: &Request<Body>|(request.method().clone(), request.uri().clone()))
+    Arc::new(|request: &Request<Body>| (request.method().clone(), request.uri().clone()))
 }
 
 /// The struct preserving all the headers and body of the cached response.
@@ -327,7 +333,7 @@ where
             limit: 128 * 1024 * 1024,
             allow_invalidation: false,
             add_response_headers: false,
-            keyer
+            keyer,
         }
     }
 
@@ -372,7 +378,6 @@ impl<C> CacheLayer<C, BasicKey>
 where
     C: Cached<BasicKey, CachedResponse> + CloneCached<BasicKey, CachedResponse>,
 {
-
     /// Create a new cache layer with a given cache and the default body size limit of 128 MB.
     pub fn with(cache: C) -> Self {
         Self {
@@ -388,24 +393,27 @@ where
 
 impl CacheLayer<TimedCache<BasicKey, CachedResponse>, BasicKey> {
     /// Create a new cache layer with the desired TTL in seconds
-    pub fn with_lifespan(ttl_sec: u64)
-    -> CacheLayer<TimedCache<BasicKey, CachedResponse>, BasicKey> {
+    pub fn with_lifespan(
+        ttl_sec: u64,
+    ) -> CacheLayer<TimedCache<BasicKey, CachedResponse>, BasicKey> {
         CacheLayer::with(TimedCache::with_lifespan(ttl_sec))
     }
 }
 
-impl <K> CacheLayer<TimedCache<BasicKey, CachedResponse>, K>
+impl<K> CacheLayer<TimedCache<BasicKey, CachedResponse>, K>
 where
     K: Debug + Hash + Eq + Clone + Send + 'static,
 {
     /// Create a new cache layer with the desired TTL in seconds
-    pub fn with_lifespan_and_keyer(ttl_sec: u64, keyer: Keyer<K>)
-    -> CacheLayer<TimedCache<K, CachedResponse>, K> {
+    pub fn with_lifespan_and_keyer(
+        ttl_sec: u64,
+        keyer: Keyer<K>,
+    ) -> CacheLayer<TimedCache<K, CachedResponse>, K> {
         CacheLayer::with_cache_and_keyer(TimedCache::with_lifespan(ttl_sec), keyer)
     }
 }
 
-impl<S, C, K> Layer<S> for CacheLayer<C, K> 
+impl<S, C, K> Layer<S> for CacheLayer<C, K>
 where
     K: Debug + Hash + Eq + Clone + Send + 'static,
 {
@@ -517,8 +525,8 @@ async fn update_cache<C, K>(
     response: Response,
     limit: usize,
     add_response_headers: bool,
-) -> Response 
-where 
+) -> Response
+where
     C: Cached<K, CachedResponse> + CloneCached<K, CachedResponse>,
     K: Debug + Hash + Eq + Clone + Send + 'static,
 {
@@ -950,7 +958,6 @@ mod tests {
         assert_eq!(1, counter.read(), "handler should’ve been called only once");
     }
 
-
     #[tokio::test]
     async fn should_cache_by_custom_keys() {
         let handler = |State(cnt): State<Counter>| async move {
@@ -959,14 +966,18 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let keyer = Arc::new(|request: &Request<Body>| (
-            request.method().clone(), 
-            request.headers().get("accept")
-                .and_then(|c|c.to_str().ok())
-                .unwrap_or_else(||"")
-                .to_string(), 
-            request.uri().clone()
-        ));
+        let keyer = Arc::new(|request: &Request<Body>| {
+            (
+                request.method().clone(),
+                request
+                    .headers()
+                    .get("accept")
+                    .and_then(|c| c.to_str().ok())
+                    .unwrap_or_else(|| "")
+                    .to_string(),
+                request.uri().clone(),
+            )
+        });
         let cache = CacheLayer::with_lifespan_and_keyer(60, keyer).add_response_headers();
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
@@ -1013,7 +1024,12 @@ mod tests {
 
         // Request with a different accept header should return the cached response
         let response = router
-            .call(Request::get("/").header("accept", "application/json").body(Body::empty()).unwrap())
+            .call(
+                Request::get("/")
+                    .header("accept", "application/json")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -1031,7 +1047,12 @@ mod tests {
         tokio::time::sleep(tokio::time::Duration::from_millis(2100)).await;
         // Second request should return the cached response
         let response = router
-            .call(Request::get("/").header("accept", "application/json").body(Body::empty()).unwrap())
+            .call(
+                Request::get("/")
+                    .header("accept", "application/json")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
@@ -1045,6 +1066,10 @@ mod tests {
             "Age header should be present and equal to 2"
         );
 
-        assert_eq!(2, counter.read(), "handler should’ve been called only twice");
+        assert_eq!(
+            2,
+            counter.read(),
+            "handler should’ve been called only twice"
+        );
     }
 }
