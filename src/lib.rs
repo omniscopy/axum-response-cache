@@ -278,7 +278,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! axum-response-cache = { version = "0.1.2", features = ["axum07"], default-features = false }
+//! axum-response-cache = { version = "0.3", features = ["axum07"], default-features = false }
 //! ```
 //!
 //! This will disable the default Axum 0.8 feature and enable the Axum 0.7 feature instead.

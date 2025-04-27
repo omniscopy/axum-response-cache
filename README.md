@@ -33,7 +33,7 @@ async fn main() {
         .route(
             "/hello/{name}",
             get(|Path(name): Path<String>| async move { format!("Hello, {name}!") })
-                // this will cache responses with each `:name` for 60 seconds.
+                // this will cache responses with each `{name}` for 60 seconds.
                 .layer(CacheLayer::with_lifespan(60)),
         );
 
