@@ -31,7 +31,7 @@ use axum_response_cache::CacheLayer;
 async fn main() {
     let mut router = Router::new()
         .route(
-            "/hello/:name",
+            "/hello/{name}",
             get(|Path(name): Path<String>| async move { format!("Hello, {name}!") })
                 // this will cache responses with each `:name` for 60 seconds.
                 .layer(CacheLayer::with_lifespan(60)),
