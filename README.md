@@ -24,6 +24,7 @@ To cache a response over a specific route,
 just wrap it in a [`CacheLayer`](https://docs.rs/axum-response-cache/latest/axum_response_cache/struct.CacheLayer.html):
 
 ```rust
+use std::time::Duration;
 use axum::{Router, extract::Path, routing::get};
 use axum_response_cache::CacheLayer;
 
@@ -34,7 +35,7 @@ async fn main() {
             "/hello/{name}",
             get(|Path(name): Path<String>| async move { format!("Hello, {name}!") })
                 // this will cache responses with each `{name}` for 60 seconds.
-                .layer(CacheLayer::with_lifespan(60)),
+                .layer(CacheLayer::with_lifespan(Duration::from_secs(60))),
         );
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();

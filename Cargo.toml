@@ -5,7 +5,7 @@ keywords = ["axum", "middleware", "caching", "http"]
 categories = ["web-programming::http-server", "caching"]
 repository = "https://github.com/omniscopy/axum-response-cache"
 readme = "README.md"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["Omniscopy Dev Team <dev@omniscopy.com>", "Benedykt Jaworski <benedykt.jaworski@omniscopy.com>"]
 license = "MIT"
@@ -13,7 +13,7 @@ license = "MIT"
 [dependencies]
 axum_07 = { package = "axum", version = "^0.7", default-features = false, optional = true}
 axum_08 = { package = "axum", version = "^0.8", default-features = false, optional = true}
-cached = "0.55"
+cached = "0.56"
 http = "1.2.0"
 tower = "0.5.2"
 tracing = "0.1.41"

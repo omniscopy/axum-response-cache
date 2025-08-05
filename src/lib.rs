@@ -22,6 +22,7 @@
 //!
 //! ```rust,no_run
 //! # use axum_08 as axum;
+//! use std::time::Duration;
 //! use axum::{Router, extract::Path, routing::get};
 //! use axum_response_cache::CacheLayer;
 //!
@@ -32,7 +33,7 @@
 //!             "/hello/{name}",
 //!             get(|Path(name): Path<String>| async move { format!("Hello, {name}!") })
 //!                 // this will cache responses with each `:name` for 60 seconds.
-//!                 .layer(CacheLayer::with_lifespan(60)),
+//!                 .layer(CacheLayer::with_lifespan(Duration::from_secs(60))),
 //!         );
 //!
 //!     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
@@ -45,6 +46,7 @@
 //! ```rust
 //! # use std::sync::atomic::{AtomicBool, Ordering};
 //! # use axum_08 as axum;
+//! use std::time::Duration;
 //! use axum::{
 //!     body::Body,
 //!     extract::Path,
@@ -72,7 +74,7 @@
 //! # async fn main() {
 //! let mut router = Router::new()
 //!     .route("/hello/{name}", get(handler))
-//!     .layer(CacheLayer::with_lifespan(60).use_stale_on_failure());
+//!     .layer(CacheLayer::with_lifespan(Duration::from_secs(60)).use_stale_on_failure());
 //!
 //! // first request will fire handler and get the response
 //! let status1 = router.call(Request::get("/hello/foo").body(Body::empty()).unwrap())
@@ -101,6 +103,7 @@
 //!
 //! ```rust
 //! # use axum_08 as axum;
+//! use std::time::Duration;
 //! use axum::{
 //!     body::Body,
 //!     extract::Path,
@@ -127,7 +130,7 @@
 //!     .route("/ok", get(ok_handler))
 //!     .route("/too_long", get(too_long_handler))
 //!     // limit max cached body to only 16 bytes
-//!     .layer(CacheLayer::with_lifespan(60).body_limit(16));
+//!     .layer(CacheLayer::with_lifespan(Duration::from_secs(60)).body_limit(16));
 //!
 //! let status_ok = router.call(Request::get("/ok").body(Body::empty()).unwrap())
 //!     .await
@@ -147,6 +150,7 @@
 //!
 //! ```rust
 //! # use axum_08 as axum;
+//! use std::time::Duration;
 //! use axum::{
 //!     body::Body,
 //!     extract::Path,
@@ -166,7 +170,7 @@
 //! # async fn main() {
 //! let mut router = Router::new()
 //!     .route("/hello/{name}", get(handler))
-//!     .layer(CacheLayer::with_lifespan(60).allow_invalidation());
+//!     .layer(CacheLayer::with_lifespan(Duration::from_secs(60)).allow_invalidation());
 //!
 //! // first request will fire handler and get the response
 //! let status1 = router.call(Request::get("/hello/foo").body(Body::empty()).unwrap())
@@ -207,6 +211,7 @@
 //! ## Using custom cache
 //! ```rust
 //! # use axum_08 as axum;
+//! use std::time::Duration;
 //! use axum::{Router, routing::get};
 //! use axum_response_cache::CacheLayer;
 //! // let’s use TimedSizedCache here
@@ -219,7 +224,7 @@
 //! let router: Router = Router::new()
 //!     .route("/hello", get(|| async { "Hello, world!" }))
 //!     // cache maximum value of 50 responses for one minute
-//!     .layer(CacheLayer::with(TimedSizedCache::with_size_and_lifespan(50, 60)));
+//!     .layer(CacheLayer::with(TimedSizedCache::with_size_and_lifespan(50, Duration::from_secs(60))));
 //! # // force type inference to resolve the exact type of router
 //! #     let _ = router.oneshot(Request::get("/hello").body(Body::empty()).unwrap()).await;
 //! # }
@@ -231,6 +236,7 @@
 //!
 //! ```rust
 //! # use axum_08 as axum;
+//! use std::time::Duration;
 //! use axum::{Router, routing::get};
 //! use axum_response_cache::CacheLayer;
 //! # use axum::{body::Body, http::Request};
@@ -253,7 +259,7 @@
 //! };
 //! let router: Router = Router::new()
 //!     .route("/hello", get(|| async { "Hello, world!" }))
-//!     .layer(CacheLayer::with_lifespan_and_keyer(60, keyer));
+//!     .layer(CacheLayer::with_lifespan_and_keyer(Duration::from_secs(60), keyer));
 //! # // force type inference to resolve the exact type of router
 //! #     let _ = router.oneshot(Request::get("/hello").body(Body::empty()).unwrap()).await;
 //! # }
@@ -291,6 +297,7 @@ use std::{
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll},
+    time::Duration,
 };
 use tracing_futures::Instrument as _;
 
@@ -464,11 +471,11 @@ where
 }
 
 impl CacheLayer<TimedCache<BasicKey, CachedResponse>, BasicKey> {
-    /// Create a new cache layer with the desired TTL in seconds
+    /// Create a new cache layer with the desired TTL
     pub fn with_lifespan(
-        ttl_sec: u64,
+        ttl: Duration,
     ) -> CacheLayer<TimedCache<BasicKey, CachedResponse>, BasicKeyer> {
-        CacheLayer::with(TimedCache::with_lifespan(ttl_sec))
+        CacheLayer::with(TimedCache::with_lifespan(ttl))
     }
 }
 
@@ -477,12 +484,12 @@ where
     K: Keyer,
     K::Key: Debug + Hash + Eq + Clone + Send + 'static,
 {
-    /// Create a new cache layer with the desired TTL in seconds
+    /// Create a new cache layer with the desired TTL
     pub fn with_lifespan_and_keyer(
-        ttl_sec: u64,
+        ttl: Duration,
         keyer: K,
     ) -> CacheLayer<TimedCache<K::Key, CachedResponse>, K> {
-        CacheLayer::with_cache_and_keyer(TimedCache::with_lifespan(ttl_sec), keyer)
+        CacheLayer::with_cache_and_keyer(TimedCache::with_lifespan(ttl), keyer)
     }
 }
 
@@ -693,7 +700,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(60).use_stale_on_failure();
+        let cache = CacheLayer::with_lifespan(Duration::from_secs(60)).use_stale_on_failure();
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
@@ -724,7 +731,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(60).use_stale_on_failure();
+        let cache = CacheLayer::with_lifespan(Duration::from_secs(60)).use_stale_on_failure();
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
@@ -765,7 +772,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(1).use_stale_on_failure();
+        let cache = CacheLayer::with_lifespan(Duration::from_millis(100)).use_stale_on_failure();
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter);
@@ -778,8 +785,8 @@ mod tests {
             .status();
         assert!(status.is_success(), "handler should return success");
 
-        // wait over 1s for cache eviction
-        tokio::time::sleep(tokio::time::Duration::from_millis(1050)).await;
+        // wait over 100 ms for cache eviction
+        tokio::time::sleep(tokio::time::Duration::from_millis(105)).await;
 
         for _ in 1..10 {
             let status = router
@@ -814,7 +821,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(1);
+        let cache = CacheLayer::with_lifespan(Duration::from_millis(100));
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
@@ -827,8 +834,8 @@ mod tests {
             .status();
         assert!(status.is_success(), "handler should return success");
 
-        // wait over 1s for cache eviction
-        tokio::time::sleep(tokio::time::Duration::from_millis(1050)).await;
+        // wait over 100 ms for cache eviction
+        tokio::time::sleep(tokio::time::Duration::from_millis(105)).await;
 
         for _ in 1..10 {
             let status = router
@@ -857,7 +864,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(60);
+        let cache = CacheLayer::with_lifespan(Duration::from_secs(60));
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
@@ -910,7 +917,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(60).allow_invalidation();
+        let cache = CacheLayer::with_lifespan(Duration::from_secs(60)).allow_invalidation();
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
@@ -963,7 +970,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(60);
+        let cache = CacheLayer::with_lifespan(Duration::from_secs(60));
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
@@ -1003,7 +1010,7 @@ mod tests {
         };
 
         let counter = Counter::new(0);
-        let cache = CacheLayer::with_lifespan(60).add_response_headers();
+        let cache = CacheLayer::with_lifespan(Duration::from_secs(60)).add_response_headers();
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
@@ -1069,7 +1076,8 @@ mod tests {
                 request.uri().clone(),
             )
         };
-        let cache = CacheLayer::with_lifespan_and_keyer(60, keyer).add_response_headers();
+        let cache = CacheLayer::with_lifespan_and_keyer(Duration::from_secs(60), keyer)
+            .add_response_headers();
         let mut router = Router::new()
             .route("/", get(handler).layer(cache))
             .with_state(counter.clone());
