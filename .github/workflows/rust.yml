@@ -1,0 +1,44 @@
+name: CI Rust
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  Build:
+    name:  
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1 # Enables backtraces for panics
+      CARGO_INCREMENTAL: 0 # Disables incremental compilation for more reproducible builds
+
+    steps:
+    - uses: actions/checkout@v4.2.2
+
+    - name: Set up Rust with cargo-auditable
+      uses: moonrepo/setup-rust@v1.2.2
+      with:
+        channel: stable
+        bins: cargo-auditable,cargo-audit
+        components: clippy,rustfmt
+        cache: true
+        cache-base: main
+        cache-target: debug
+        inherit-toolchain: false
+        target-dirs: target
+
+    - name: Run rustfmt
+      run: cargo fmt --all -- --check
+
+    - name: Run clippy
+      run: cargo clippy --all-targets -- -D warnings
+      
+    - name: Run tests
+      run: cargo test
+
