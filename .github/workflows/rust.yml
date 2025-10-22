@@ -19,7 +19,7 @@ jobs:
       CARGO_INCREMENTAL: 0 # Disables incremental compilation for more reproducible builds
 
     steps:
-    - uses: actions/checkout@v4.2.2
+    - uses: actions/checkout@v5.0.0
 
     - name: Set up Rust with cargo-auditable
       uses: moonrepo/setup-rust@v1.2.2
