@@ -22,7 +22,7 @@ jobs:
     - uses: actions/checkout@v6.0.2
 
     - name: Set up Rust with cargo-auditable
-      uses: moonrepo/setup-rust@v1.2.2
+      uses: moonrepo/setup-rust@v1.3.0
       with:
         channel: stable
         bins: cargo-auditable,cargo-audit
