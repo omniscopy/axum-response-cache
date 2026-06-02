@@ -214,8 +214,8 @@
 //! use std::time::Duration;
 //! use axum::{Router, routing::get};
 //! use axum_response_cache::CacheLayer;
-//! // let’s use TimedSizedCache here
-//! use cached::stores::TimedSizedCache;
+//! // let’s use LruTtlCache here
+//! use cached::stores::LruTtlCache;
 //! # use axum::{body::Body, http::Request};
 //! # use tower::ServiceExt;
 //!
@@ -224,7 +224,7 @@
 //! let router: Router = Router::new()
 //!     .route("/hello", get(|| async { "Hello, world!" }))
 //!     // cache maximum value of 50 responses for one minute
-//!     .layer(CacheLayer::with(TimedSizedCache::with_size_and_lifespan(50, Duration::from_secs(60))));
+//!     .layer(CacheLayer::with(LruTtlCache::with_size_and_ttl(50, Duration::from_secs(60))));
 //! # // force type inference to resolve the exact type of router
 //! #     let _ = router.oneshot(Request::get("/hello").body(Body::empty()).unwrap()).await;
 //! # }
@@ -266,7 +266,7 @@
 //! ```
 //!
 //! ## Use cases
-//! Caching responses in memory (eg. using [`cached::TimedCache`]) might be useful when the
+//! Caching responses in memory (eg. using [`cached::TtlCache`]) might be useful when the
 //! underlying service produces the responses by:
 //! 1. doing heavy computation,
 //! 2. requesting external service(s) that might not be fully reliable or performant,
@@ -313,7 +313,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use cached::{Cached, CloneCached, TimedCache};
+use cached::{Cached, CloneCached, TtlCache};
 use tower::{Layer, Service};
 use tracing::{debug, instrument};
 
@@ -470,16 +470,16 @@ where
     }
 }
 
-impl CacheLayer<TimedCache<BasicKey, CachedResponse>, BasicKey> {
+impl CacheLayer<TtlCache<BasicKey, CachedResponse>, BasicKey> {
     /// Create a new cache layer with the desired TTL
     pub fn with_lifespan(
         ttl: Duration,
-    ) -> CacheLayer<TimedCache<BasicKey, CachedResponse>, BasicKeyer> {
-        CacheLayer::with(TimedCache::with_lifespan(ttl))
+    ) -> CacheLayer<TtlCache<BasicKey, CachedResponse>, BasicKeyer> {
+        CacheLayer::with(TtlCache::with_ttl(ttl))
     }
 }
 
-impl<K> CacheLayer<TimedCache<K::Key, CachedResponse>, K>
+impl<K> CacheLayer<TtlCache<K::Key, CachedResponse>, K>
 where
     K: Keyer,
     K::Key: Debug + Hash + Eq + Clone + Send + 'static,
@@ -488,8 +488,8 @@ where
     pub fn with_lifespan_and_keyer(
         ttl: Duration,
         keyer: K,
-    ) -> CacheLayer<TimedCache<K::Key, CachedResponse>, K> {
-        CacheLayer::with_cache_and_keyer(TimedCache::with_lifespan(ttl), keyer)
+    ) -> CacheLayer<TtlCache<K::Key, CachedResponse>, K> {
+        CacheLayer::with_cache_and_keyer(TtlCache::with_ttl(ttl), keyer)
     }
 }
 
@@ -578,7 +578,7 @@ where
             .instrument(tracing::info_span!("inner_service"));
         let (cached, evicted) = {
             let mut guard = cache.lock().unwrap();
-            let (cached, evicted) = guard.cache_get_expired(&key);
+            let (cached, evicted) = guard.get_with_expiry_status(&key);
             if let (Some(stale), true) = (cached.as_ref(), evicted) {
                 // reinsert stale value immediately so that others don’t schedule their updating
                 debug!("Found stale value in cache, reinsterting and attempting refresh");
@@ -654,7 +654,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::Rng;
+    use rand::{RngExt as _};
     use std::sync::atomic::{AtomicIsize, Ordering};
 
     #[cfg(feature = "axum07")]
