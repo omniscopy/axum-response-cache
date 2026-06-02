@@ -654,7 +654,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{RngExt as _};
+    use rand::RngExt as _;
     use std::sync::atomic::{AtomicIsize, Ordering};
 
     #[cfg(feature = "axum07")]
